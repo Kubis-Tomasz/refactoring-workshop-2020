@@ -34,6 +34,18 @@ class Map
 
 };
 
+class Food
+{
+    public:
+    Food(){};
+    void handleFoodInd(std::unique_ptr<Event>);
+    void handleFoodResp(std::unique_ptr<Event>);
+
+    void updateFoodPosition(int x, int y, std::function<void()> clearPolicy)
+
+
+};
+
 class Controller : public IEventHandler
 {
 public:
@@ -63,8 +75,6 @@ private:
 
     void handleTimeoutInd();
     void handleDirectionInd(std::unique_ptr<Event>);
-    void handleFoodInd(std::unique_ptr<Event>);
-    void handleFoodResp(std::unique_ptr<Event>);
     void handlePauseInd(std::unique_ptr<Event>);
 
     bool isSegmentAtPosition(int x, int y) const;

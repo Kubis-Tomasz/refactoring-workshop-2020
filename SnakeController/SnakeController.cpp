@@ -15,10 +15,7 @@ ConfigurationError::ConfigurationError()
 UnexpectedEventException::UnexpectedEventException()
     : std::runtime_error("Unexpected event received!")
 {}
-// Map::Map(int width, int height)
-//     {
-//         m_mapDimension = std::make_pair(width, height);
-//     }
+
 void Map::setDimensions(int width, int height)
 {
      m_mapDimension = std::make_pair(width, height);
@@ -28,6 +25,30 @@ bool Map::isPositionOutsideMap(int x, int y) const
     {
         return x < 0 or y < 0 or x >= m_mapDimension.first or y >= m_mapDimension.second;
     }
+void Food::updateFoodPosition(int x, int y, std::function<void()> clearPolicy)
+{
+    if (isSegmentAtPosition(x, y) || map.isPositionOutsideMap(x,y)) {
+        m_foodPort.send(std::make_unique<EventT<FoodReq>>());
+        return;
+    }
+
+    clearPolicy();
+    sendPlaceNewFood(x, y);
+}
+
+void Food::handleFoodInd(std::unique_ptr<Event> e)
+{
+    auto receivedFood = payload<FoodInd>(*e);
+
+    updateFoodPosition(receivedFood.x, receivedFood.y, std::bind(&Controller::sendClearOldFood, this));
+}
+
+void Food::handleFoodResp(std::unique_ptr<Event> e)
+{
+    auto requestedFood = payload<FoodResp>(*e);
+
+    updateFoodPosition(requestedFood.x, requestedFood.y, []{});
+}
 
 Controller::Controller(IPort& p_displayPort, IPort& p_foodPort, IPort& p_scorePort, std::string const& p_config)
     : m_displayPort(p_displayPort),
@@ -199,30 +220,9 @@ void Controller::handleDirectionInd(std::unique_ptr<Event> e)
     }
 }
 
-void Controller::updateFoodPosition(int x, int y, std::function<void()> clearPolicy)
-{
-    if (isSegmentAtPosition(x, y) || map.isPositionOutsideMap(x,y)) {
-        m_foodPort.send(std::make_unique<EventT<FoodReq>>());
-        return;
-    }
 
-    clearPolicy();
-    sendPlaceNewFood(x, y);
-}
 
-void Controller::handleFoodInd(std::unique_ptr<Event> e)
-{
-    auto receivedFood = payload<FoodInd>(*e);
 
-    updateFoodPosition(receivedFood.x, receivedFood.y, std::bind(&Controller::sendClearOldFood, this));
-}
-
-void Controller::handleFoodResp(std::unique_ptr<Event> e)
-{
-    auto requestedFood = payload<FoodResp>(*e);
-
-    updateFoodPosition(requestedFood.x, requestedFood.y, []{});
-}
 
 void Controller::handlePauseInd(std::unique_ptr<Event> e)
 {
